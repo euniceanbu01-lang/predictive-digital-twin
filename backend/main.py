@@ -2,8 +2,8 @@ from fastapi import FastAPI
 import requests
 import math
 
-from backend.predict import predict_leak
-from backend.prescribe import get_prescription
+from predict import predict_leak
+from prescribe import get_prescription
 
 
 app = FastAPI()
