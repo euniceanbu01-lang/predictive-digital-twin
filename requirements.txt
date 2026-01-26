@@ -1,6 +1,11 @@
 fastapi
-uvicorn
+uvicorn[standard]
 gunicorn
+
+numpy
 pandas
-joblib
 scikit-learn
+joblib
+
+requests
+python-multipart
