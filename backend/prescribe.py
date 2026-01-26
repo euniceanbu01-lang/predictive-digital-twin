@@ -1,18 +1,26 @@
 import pandas as pd
 import math
+import os
 
-df = pd.read_csv("prescription.csv")
 
-# Replace NaN in dataframe
+# Get current file directory (backend folder)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Path to prescription.csv
+CSV_PATH = os.path.join(BASE_DIR, "prescription.csv")
+
+
+# Load CSV safely
+df = pd.read_csv(CSV_PATH)
+
+# Replace NaN
 df = df.fillna("")
 
 
 def clean_value(x):
-
     if isinstance(x, float):
         if math.isnan(x):
             return ""
-
     return x
 
 
@@ -20,13 +28,13 @@ def get_prescription(leak_size, magnitude):
 
     for _, row in df.iterrows():
 
-        if row["severity"] == "Catastrophic":
+        if row.get("severity") == "Catastrophic":
             continue
 
-        smin = row["leak_size_min"]
-        smax = row["leak_size_max"]
-        mmin = row["magnitude_min"]
-        mmax = row["magnitude_max"]
+        smin = row.get("leak_size_min", "")
+        smax = row.get("leak_size_max", "")
+        mmin = row.get("magnitude_min", "")
+        mmax = row.get("magnitude_max", "")
 
         size_ok = True
         mag_ok = True
@@ -54,11 +62,18 @@ def get_prescription(leak_size, magnitude):
 
             return result
 
-    row = df[df["severity"] == "Moderate"].iloc[0]
 
-    result = {}
+    # Default fallback (Moderate)
+    moderate = df[df["severity"] == "Moderate"]
 
-    for k, v in row.to_dict().items():
-        result[k] = clean_value(v)
+    if len(moderate) > 0:
+        row = moderate.iloc[0]
 
-    return result
+        result = {}
+
+        for k, v in row.to_dict().items():
+            result[k] = clean_value(v)
+
+        return result
+
+    return {"message": "No prescription found"}
