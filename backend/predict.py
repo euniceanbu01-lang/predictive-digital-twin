@@ -2,8 +2,14 @@ import joblib
 import numpy as np
 import math
 import pandas as pd
+import os
 
-bundle = joblib.load("model.joblib")
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "model.joblib")
+
+bundle = joblib.load(MODEL_PATH)
+
 
 model = bundle["model"]
 threshold = bundle["threshold"]
