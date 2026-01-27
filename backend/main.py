@@ -6,20 +6,17 @@ import os
 from .predict import predict_leak
 from .prescribe import get_prescription
 
-
 app = FastAPI()
 
 
-# ============================
-# Read from Azure Environment
-# ============================
-
+# =============================
+# Load env variables
+# =============================
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 READ_API_KEY = os.getenv("READ_API_KEY")
 
-
 if not CHANNEL_ID or not READ_API_KEY:
-    raise RuntimeError("Missing ThingSpeak environment variables")
+    raise ValueError("Missing ThingSpeak environment variables")
 
 
 THINGSPEAK_URL = (
@@ -32,11 +29,10 @@ DEFAULT_PRESSURE = 45.0
 DEFAULT_FLOW = 100.0
 
 
-# -----------------------
-# Safe float
-# -----------------------
+# =============================
+# Helpers
+# =============================
 def safe_float(x, default):
-
     try:
         v = float(x)
 
@@ -49,9 +45,6 @@ def safe_float(x, default):
         return default
 
 
-# -----------------------
-# Clean dict
-# -----------------------
 def clean_dict(d):
 
     out = {}
@@ -59,6 +52,7 @@ def clean_dict(d):
     for k, v in d.items():
 
         if isinstance(v, float):
+
             if math.isnan(v) or math.isinf(v):
                 out[k] = 0.0
             else:
@@ -70,26 +64,19 @@ def clean_dict(d):
     return out
 
 
-# -----------------------
-# Home
-# -----------------------
+# =============================
+# Routes
+# =============================
 @app.get("/")
 def home():
     return {"status": "Digital Twin Running"}
 
 
-# -----------------------
-# Manual Input
-# -----------------------
 @app.get("/predict")
 def manual_predict(pressure: float, flow: float):
-
     return process(pressure, flow)
 
 
-# -----------------------
-# Live ThingSpeak
-# -----------------------
 @app.get("/live")
 def live_predict():
 
@@ -105,17 +92,15 @@ def live_predict():
 
     except Exception as e:
 
-        print("ThingSpeak error:", e)
-
         pressure = DEFAULT_PRESSURE
         flow = DEFAULT_FLOW
 
     return process(pressure, flow)
 
 
-# -----------------------
-# Core Logic
-# -----------------------
+# =============================
+# Core
+# =============================
 def process(pressure, flow):
 
     result = predict_leak(pressure, flow)
