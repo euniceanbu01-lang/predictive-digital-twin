@@ -1,28 +1,45 @@
 from fastapi import FastAPI
 import requests
 import math
+import os   # ✅ IMPORTANT
 
 from .predict import predict_leak
 from .prescribe import get_prescription
 
 
-
 app = FastAPI()
 
 
-CHANNEL_ID = "3149051"
-READ_API_KEY = "NWKBNFL3252PISBY"
+# ============================
+# Read from Azure Environment
+# ============================
 
-THINGSPEAK_URL = f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?api_key={READ_API_KEY}&results=1"
+CHANNEL_ID = os.getenv("CHANNEL_ID")
+READ_API_KEY = os.getenv("READ_API_KEY")
 
+
+if not CHANNEL_ID or not READ_API_KEY:
+    print("⚠️ WARNING: ThingSpeak credentials not found in environment variables!")
+
+
+THINGSPEAK_URL = (
+    f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json"
+    f"?api_key={READ_API_KEY}&results=1"
+)
+
+
+# ============================
+# Defaults
+# ============================
 
 DEFAULT_PRESSURE = 45.0
 DEFAULT_FLOW = 100.0
 
 
-# -----------------------
+# ============================
 # Safe float
-# -----------------------
+# ============================
+
 def safe_float(x, default):
 
     try:
@@ -37,9 +54,10 @@ def safe_float(x, default):
         return default
 
 
-# -----------------------
+# ============================
 # Clean dict
-# -----------------------
+# ============================
+
 def clean_dict(d):
 
     out = {}
@@ -58,25 +76,37 @@ def clean_dict(d):
     return out
 
 
+# ============================
+# Home
+# ============================
+
 @app.get("/")
 def home():
     return {"status": "Digital Twin Running"}
 
 
-# Manual
+# ============================
+# Manual Predict
+# ============================
+
 @app.get("/predict")
 def manual_predict(pressure: float, flow: float):
 
     return process(pressure, flow)
 
 
-# Live
+# ============================
+# Live Predict
+# ============================
+
 @app.get("/live")
 def live_predict():
 
     try:
 
         r = requests.get(THINGSPEAK_URL, timeout=10)
+        r.raise_for_status()
+
         data = r.json()
 
         feed = data["feeds"][-1]
@@ -84,15 +114,21 @@ def live_predict():
         pressure = safe_float(feed.get("field1"), DEFAULT_PRESSURE)
         flow = safe_float(feed.get("field2"), DEFAULT_FLOW)
 
-    except:
+    except Exception as e:
+
+        print("⚠️ ThingSpeak Error:", e)
 
         pressure = DEFAULT_PRESSURE
         flow = DEFAULT_FLOW
 
+
     return process(pressure, flow)
 
 
-# Core
+# ============================
+# Core Logic
+# ============================
+
 def process(pressure, flow):
 
     result = predict_leak(pressure, flow)
@@ -101,11 +137,13 @@ def process(pressure, flow):
     leak_mm = safe_float(result.get("leak_mm"), 0)
     prob = safe_float(result.get("prob"), 0)
 
+
     prescription = {
         "severity": "Normal",
         "action_type": "No action required",
         "priority": 0
     }
+
 
     if result.get("leak") == 1:
 
@@ -115,6 +153,7 @@ def process(pressure, flow):
         pres = get_prescription(size_ratio, mag_ratio)
 
         prescription = clean_dict(pres)
+
 
     return clean_dict({
 
