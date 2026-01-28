@@ -2,6 +2,10 @@ from fastapi import FastAPI
 import requests
 import math
 import os
+import json
+from datetime import datetime
+
+from azure.storage.blob import BlobServiceClient
 
 from .predict import predict_leak
 from .prescribe import get_prescription
@@ -15,10 +19,41 @@ app = FastAPI()
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 READ_API_KEY = os.getenv("READ_API_KEY")
 
+AZURE_STORAGE_CONNECTION_STRING = os.getenv(
+    "AZURE_STORAGE_CONNECTION_STRING"
+)
+
+CONTAINER_NAME = "digital-twin-data"
+
+
 if not CHANNEL_ID or not READ_API_KEY:
     raise ValueError("Missing ThingSpeak environment variables")
 
+if not AZURE_STORAGE_CONNECTION_STRING:
+    raise ValueError("Missing Azure Storage connection string")
 
+
+# =============================
+# Azure Blob Setup
+# =============================
+blob_service_client = BlobServiceClient.from_connection_string(
+    AZURE_STORAGE_CONNECTION_STRING
+)
+
+container_client = blob_service_client.get_container_client(
+    CONTAINER_NAME
+)
+
+# Create container if not exists
+try:
+    container_client.create_container()
+except:
+    pass
+
+
+# =============================
+# ThingSpeak URL
+# =============================
 THINGSPEAK_URL = (
     f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json"
     f"?api_key={READ_API_KEY}&results=1"
@@ -65,6 +100,23 @@ def clean_dict(d):
 
 
 # =============================
+# Save to Azure Blob
+# =============================
+def save_to_blob(data: dict):
+
+    timestamp = datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S")
+
+    filename = f"{timestamp}.json"
+
+    blob_client = container_client.get_blob_client(filename)
+
+    blob_client.upload_blob(
+        json.dumps(data, indent=2),
+        overwrite=True
+    )
+
+
+# =============================
 # Routes
 # =============================
 @app.get("/")
@@ -87,10 +139,17 @@ def live_predict():
 
         feed = data["feeds"][-1]
 
-        pressure = safe_float(feed.get("field1"), DEFAULT_PRESSURE)
-        flow = safe_float(feed.get("field2"), DEFAULT_FLOW)
+        pressure = safe_float(
+            feed.get("field1"),
+            DEFAULT_PRESSURE
+        )
 
-    except Exception as e:
+        flow = safe_float(
+            feed.get("field2"),
+            DEFAULT_FLOW
+        )
+
+    except:
 
         pressure = DEFAULT_PRESSURE
         flow = DEFAULT_FLOW
@@ -99,7 +158,7 @@ def live_predict():
 
 
 # =============================
-# Core
+# Core Logic
 # =============================
 def process(pressure, flow):
 
@@ -124,7 +183,9 @@ def process(pressure, flow):
 
         prescription = clean_dict(pres)
 
-    return clean_dict({
+    response = clean_dict({
+
+        "timestamp": datetime.utcnow().isoformat(),
 
         "pressure": round(pressure, 2),
         "flow": round(flow, 2),
@@ -137,3 +198,8 @@ def process(pressure, flow):
 
         "prescription": prescription
     })
+
+    # Save in Azure Blob
+    save_to_blob(response)
+
+    return response
