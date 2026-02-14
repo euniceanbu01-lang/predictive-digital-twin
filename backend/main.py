@@ -6,15 +6,16 @@ import json
 from datetime import datetime
 
 from azure.storage.blob import BlobServiceClient
+from apscheduler.schedulers.background import BackgroundScheduler
 
 from .predict import predict_leak
 from .prescribe import get_prescription
 
 app = FastAPI()
 
-# =============================
-# Environment Variables
-# =============================
+# =====================================================
+# ENVIRONMENT VARIABLES
+# =====================================================
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 READ_API_KEY = os.getenv("READ_API_KEY")
 AZURE_STORAGE_CONNECTION_STRING = os.getenv(
@@ -30,9 +31,9 @@ if not CHANNEL_ID or not READ_API_KEY:
 if not AZURE_STORAGE_CONNECTION_STRING:
     raise ValueError("Missing Azure Storage connection string")
 
-# =============================
-# Azure Blob Setup
-# =============================
+# =====================================================
+# AZURE BLOB SETUP
+# =====================================================
 blob_service_client = BlobServiceClient.from_connection_string(
     AZURE_STORAGE_CONNECTION_STRING
 )
@@ -52,9 +53,9 @@ for container in [raw_container_client, processed_container_client]:
     except:
         pass
 
-# =============================
-# ThingSpeak URL
-# =============================
+# =====================================================
+# THINGSPEAK CONFIG
+# =====================================================
 THINGSPEAK_URL = (
     f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json"
     f"?api_key={READ_API_KEY}&results=1"
@@ -63,18 +64,18 @@ THINGSPEAK_URL = (
 DEFAULT_PRESSURE = 45.0
 DEFAULT_FLOW = 100.0
 
-# =============================
-# Sensor Config (3 Pairs)
-# =============================
+# =====================================================
+# SENSOR CONFIGURATION (3 PAIRS)
+# =====================================================
 SENSOR_CONFIG = [
     {"sensor_id": 1, "pressure_field": "field1", "flow_field": "field2"},
     {"sensor_id": 2, "pressure_field": "field3", "flow_field": "field4"},
     {"sensor_id": 3, "pressure_field": "field5", "flow_field": "field6"},
 ]
 
-# =============================
-# Utility Functions
-# =============================
+# =====================================================
+# UTILITY FUNCTIONS
+# =====================================================
 def safe_float(x, default):
     try:
         v = float(x)
@@ -98,36 +99,25 @@ def clean_dict(d):
     return out
 
 
-# =============================
-# Save to Blob
-# =============================
 def save_to_blob(container_client, filename, data: dict):
-
     blob_client = container_client.get_blob_client(filename)
-
     blob_client.upload_blob(
         json.dumps(data, indent=2),
         overwrite=True
     )
 
-
-# =============================
-# Routes
-# =============================
-@app.get("/")
-def home():
-    return {"status": "Multi-Sensor Digital Twin Running"}
-
-
-@app.get("/live")
-def live_predict():
+# =====================================================
+# CORE DIGITAL TWIN FUNCTION (AUTO RUN)
+# =====================================================
+def run_digital_twin():
 
     try:
         r = requests.get(THINGSPEAK_URL, timeout=10)
         data = r.json()
         feed = data["feeds"][-1]
     except:
-        return {"error": "ThingSpeak connection failed"}
+        print("ThingSpeak fetch failed")
+        return
 
     timestamp = datetime.utcnow().isoformat()
     filename_time = datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S")
@@ -144,9 +134,6 @@ def live_predict():
         "sensors": []
     }
 
-    # =============================
-    # Process Each Sensor
-    # =============================
     for sensor in SENSOR_CONFIG:
 
         sensor_id = sensor["sensor_id"]
@@ -161,17 +148,13 @@ def live_predict():
             DEFAULT_FLOW
         )
 
-        # ---------------------------
         # RAW STORAGE
-        # ---------------------------
         raw_output["sensors"][f"sensor_{sensor_id}"] = {
             "pressure": pressure,
             "flow": flow
         }
 
-        # ---------------------------
-        # Prediction
-        # ---------------------------
+        # PREDICTION
         result = predict_leak(pressure, flow)
 
         leak_lpm = safe_float(result.get("leak_lpm"), 0)
@@ -201,9 +184,7 @@ def live_predict():
             "prescription": prescription
         }))
 
-    # =============================
-    # Save RAW & PROCESSED separately
-    # =============================
+    # SAVE RAW & PROCESSED
     save_to_blob(
         raw_container_client,
         f"{filename_time}_raw.json",
@@ -216,9 +197,25 @@ def live_predict():
         processed_output
     )
 
-    return {
-        "timestamp": timestamp,
-        "raw_data": raw_output["sensors"],
-        "processed_data": processed_output["sensors"]
-    }
+    print("Digital Twin executed at", timestamp)
+
+# =====================================================
+# API ROUTES
+# =====================================================
+@app.get("/")
+def home():
+    return {"status": "Autonomous Digital Twin Running"}
+
+@app.get("/live")
+def live_predict():
+    run_digital_twin()
+    return {"status": "Manual Trigger Executed"}
+
+# =====================================================
+# SCHEDULER (RUN EVERY 1 MINUTE)
+# =====================================================
+scheduler = BackgroundScheduler()
+scheduler.add_job(run_digital_twin, "interval", minutes=1)
+scheduler.start()
+
 
