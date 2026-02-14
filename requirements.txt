@@ -1,14 +1,13 @@
 fastapi
-uvicorn[standard]
 gunicorn
+uvicorn[standard]
 
 numpy
 pandas
-scikit-learn==1.6.1
+scikit-learn
 joblib
 
 requests
 python-multipart
 azure-storage-blob
-from apscheduler.schedulers.background import BackgroundScheduler
-
+apscheduler
