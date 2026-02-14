@@ -217,8 +217,8 @@ def live_predict():
     )
 
     return {
-        "status": "Stored Successfully",
-        "raw_container": RAW_CONTAINER,
-        "processed_container": PROCESSED_CONTAINER,
-        "timestamp": timestamp
+        "timestamp": timestamp,
+        "raw_data": raw_output["sensors"],
+        "processed_data": processed_output["sensors"]
     }
+
