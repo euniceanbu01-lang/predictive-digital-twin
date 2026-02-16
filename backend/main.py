@@ -5,7 +5,6 @@ import os
 import json
 from datetime import datetime
 from azure.storage.blob import BlobServiceClient
-from fastapi.responses import JSONResponse
 
 from .predict import predict_leak
 from .prescribe import get_prescription
@@ -213,6 +212,7 @@ def home():
 @app.get("/live")
 def live_trigger():
     result = run_digital_twin()
-    return JSONResponse(content=result)
+    return result
+
 
     
