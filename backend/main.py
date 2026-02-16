@@ -5,6 +5,7 @@ import os
 import json
 from datetime import datetime
 from azure.storage.blob import BlobServiceClient
+from fastapi.responses import JSONResponse
 
 from .predict import predict_leak
 from .prescribe import get_prescription
