@@ -4,7 +4,6 @@ import math
 import os
 import json
 from datetime import datetime
-
 from azure.storage.blob import BlobServiceClient
 
 from .predict import predict_leak
@@ -62,9 +61,6 @@ THINGSPEAK_URL = (
 DEFAULT_PRESSURE = 45.0
 DEFAULT_FLOW = 100.0
 
-# =====================================================
-# SENSOR CONFIG (3 Pairs)
-# =====================================================
 SENSOR_CONFIG = [
     {"sensor_id": 1, "pressure_field": "field1", "flow_field": "field2"},
     {"sensor_id": 2, "pressure_field": "field3", "flow_field": "field4"},
@@ -111,11 +107,11 @@ def run_digital_twin():
 
     try:
         r = requests.get(THINGSPEAK_URL, timeout=10)
+        r.raise_for_status()
         data = r.json()
         feed = data["feeds"][-1]
-    except:
-        print("ThingSpeak fetch failed")
-        return
+    except Exception as e:
+        return {"error": f"ThingSpeak fetch failed: {str(e)}"}
 
     timestamp = datetime.utcnow().isoformat()
     filename_time = datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S")
@@ -180,6 +176,7 @@ def run_digital_twin():
             "prescription": prescription
         }))
 
+    # Save to Azure Blob
     save_to_blob(
         raw_container_client,
         f"{filename_time}_raw.json",
@@ -192,7 +189,7 @@ def run_digital_twin():
         processed_output
     )
 
-    print("Digital Twin executed at", timestamp)
+    return processed_output  # 👈 IMPORTANT
 
 # =====================================================
 # API ROUTES
@@ -203,5 +200,5 @@ def home():
 
 @app.get("/live")
 def live_trigger():
-    run_digital_twin()
-    return {"status": "Manual Trigger Executed"}
+    result = run_digital_twin()
+    return result
