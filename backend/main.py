@@ -104,14 +104,18 @@ def save_to_blob(container_client, filename, data: dict):
 # CORE DIGITAL TWIN FUNCTION
 # =====================================================
 def run_digital_twin():
-
     try:
         r = requests.get(THINGSPEAK_URL, timeout=10)
         r.raise_for_status()
         data = r.json()
+
+        if "feeds" not in data or len(data["feeds"]) == 0:
+            return {"error": "No feeds available from ThingSpeak"}
+
         feed = data["feeds"][-1]
+
     except Exception as e:
-        return {"error": f"ThingSpeak fetch failed: {str(e)}"}
+        return {"error": f"ThingSpeak error: {str(e)}"}
 
     timestamp = datetime.utcnow().isoformat()
     filename_time = datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S")
@@ -128,68 +132,75 @@ def run_digital_twin():
         "sensors": []
     }
 
-    for sensor in SENSOR_CONFIG:
+    try:
+        for sensor in SENSOR_CONFIG:
 
-        sensor_id = sensor["sensor_id"]
+            sensor_id = sensor["sensor_id"]
 
-        pressure = safe_float(
-            feed.get(sensor["pressure_field"]),
-            DEFAULT_PRESSURE
+            pressure = safe_float(
+                feed.get(sensor["pressure_field"]),
+                DEFAULT_PRESSURE
+            )
+
+            flow = safe_float(
+                feed.get(sensor["flow_field"]),
+                DEFAULT_FLOW
+            )
+
+            raw_output["sensors"][f"sensor_{sensor_id}"] = {
+                "pressure": pressure,
+                "flow": flow
+            }
+
+            result = predict_leak(pressure, flow)
+
+            leak_lpm = safe_float(result.get("leak_lpm"), 0)
+            leak_mm = safe_float(result.get("leak_mm"), 0)
+            prob = safe_float(result.get("prob"), 0)
+
+            prescription = {
+                "severity": "Normal",
+                "action_type": "No action required",
+                "priority": 0
+            }
+
+            if result.get("leak") == 1:
+                size_ratio = leak_mm / 1000
+                mag_ratio = leak_lpm / 10800
+                pres = get_prescription(size_ratio, mag_ratio)
+                prescription = clean_dict(pres)
+
+            processed_output["sensors"].append(clean_dict({
+                "sensor_id": sensor_id,
+                "pressure": round(pressure, 2),
+                "flow": round(flow, 2),
+                "leak": int(result.get("leak", 0)),
+                "probability": round(prob, 4),
+                "leak_lpm": leak_lpm,
+                "leak_mm": leak_mm,
+                "prescription": prescription
+            }))
+
+    except Exception as e:
+        return {"error": f"Prediction error: {str(e)}"}
+
+    try:
+        save_to_blob(
+            raw_container_client,
+            f"{filename_time}_raw.json",
+            raw_output
         )
 
-        flow = safe_float(
-            feed.get(sensor["flow_field"]),
-            DEFAULT_FLOW
+        save_to_blob(
+            processed_container_client,
+            f"{filename_time}_processed.json",
+            processed_output
         )
 
-        raw_output["sensors"][f"sensor_{sensor_id}"] = {
-            "pressure": pressure,
-            "flow": flow
-        }
+    except Exception as e:
+        return {"error": f"Azure Blob error: {str(e)}"}
 
-        result = predict_leak(pressure, flow)
-
-        leak_lpm = safe_float(result.get("leak_lpm"), 0)
-        leak_mm = safe_float(result.get("leak_mm"), 0)
-        prob = safe_float(result.get("prob"), 0)
-
-        prescription = {
-            "severity": "Normal",
-            "action_type": "No action required",
-            "priority": 0
-        }
-
-        if result.get("leak") == 1:
-            size_ratio = leak_mm / 1000
-            mag_ratio = leak_lpm / 10800
-            pres = get_prescription(size_ratio, mag_ratio)
-            prescription = clean_dict(pres)
-
-        processed_output["sensors"].append(clean_dict({
-            "sensor_id": sensor_id,
-            "pressure": round(pressure, 2),
-            "flow": round(flow, 2),
-            "leak": int(result.get("leak", 0)),
-            "probability": round(prob, 4),
-            "leak_lpm": leak_lpm,
-            "leak_mm": leak_mm,
-            "prescription": prescription
-        }))
-
-    # Save to Azure Blob
-    save_to_blob(
-        raw_container_client,
-        f"{filename_time}_raw.json",
-        raw_output
-    )
-
-    save_to_blob(
-        processed_container_client,
-        f"{filename_time}_processed.json",
-        processed_output
-    )
-
-    return processed_output  # 👈 IMPORTANT
+    return processed_output # 👈 IMPORTANT
 
 # =====================================================
 # API ROUTES
