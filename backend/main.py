@@ -201,4 +201,6 @@ def home():
 @app.get("/live")
 def live_trigger():
     result = run_digital_twin()
-    return result
+    return JSONResponse(content=result)
+
+    
