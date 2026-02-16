@@ -3,6 +3,7 @@ import requests
 import math
 import os
 import json
+import uuid
 from datetime import datetime
 from azure.storage.blob import BlobServiceClient
 
@@ -118,7 +119,9 @@ def run_digital_twin():
         return {"error": f"ThingSpeak error: {str(e)}"}
 
     timestamp = datetime.utcnow().isoformat()
-    filename_time = datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S")
+    filename_time = f"{datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')}_{uuid.uuid4().hex}"
+
+
 
     raw_output = {
         "timestamp": timestamp,
