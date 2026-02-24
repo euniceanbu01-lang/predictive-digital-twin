@@ -69,6 +69,27 @@ SENSOR_CONFIG = [
 ]
 
 # =====================================================
+# SENSOR TO REVIT MAPPING
+# =====================================================
+
+SENSOR_METADATA = {
+    1: {
+        "pressure_sensor_id": "PP-003",
+        "flow_sensor_id": "F-003",
+        "pipe_id": "P-009"
+    },
+    2: {
+        "pressure_sensor_id": "PP-002",
+        "flow_sensor_id": "F-002",
+        "pipe_id": "P-010"
+    },
+    3: {
+        "pressure_sensor_id": "PP-001",
+        "flow_sensor_id": "F-001",
+        "pipe_id": "P-011"
+    }
+}
+# =====================================================
 # UTILITIES
 # =====================================================
 def safe_float(x, default):
@@ -172,9 +193,13 @@ def run_digital_twin():
                 mag_ratio = leak_lpm / 10800
                 pres = get_prescription(size_ratio, mag_ratio)
                 prescription = clean_dict(pres)
-
+ 
+            meta = SENSOR_METADATA.get(sensor_id, {})
             processed_output["sensors"].append(clean_dict({
-                "sensor_id": sensor_id,
+                "sensor_numeric_id": sensor_id,
+                "pressure_sensor_id": meta.get("pressure_sensor_id"),
+                "flow_sensor_id": meta.get("flow_sensor_id"),
+                "pipe_id": meta.get("pipe_id"),
                 "pressure": round(pressure, 2),
                 "flow": round(flow, 2),
                 "leak": int(result.get("leak", 0)),
