@@ -15,12 +15,11 @@ app = FastAPI()
 # =====================================================
 # ENVIRONMENT VARIABLES
 # =====================================================
-CHANNEL_ID = os.getenv("CHANNEL_ID")
-READ_API_KEY = os.getenv("READ_API_KEY")
+CHANNEL_ID = os.getenv("3149051")
+READ_API_KEY = os.getenv("NWKBNFL3252PISBY")
 AZURE_STORAGE_CONNECTION_STRING = os.getenv(
     "AZURE_STORAGE_CONNECTION_STRING"
 )
-
 RAW_CONTAINER = "digital-twin-raw"
 PROCESSED_CONTAINER = "digital-twin-processed"
 
