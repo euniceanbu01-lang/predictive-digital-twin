@@ -1,130 +1,3 @@
-from fastapi import FastAPI
-import requests
-import math
-import os
-import json
-import uuid
-from datetime import datetime
-from azure.storage.blob import BlobServiceClient
-
-from .predict import predict_leak
-from .prescribe import get_prescription
-
-app = FastAPI()
-
-# =====================================================
-# ENVIRONMENT VARIABLES
-# =====================================================
-CHANNEL_ID = os.getenv("CHANNEL_ID")
-READ_API_KEY = os.getenv("READ_API_KEY")
-AZURE_STORAGE_CONNECTION_STRING = os.getenv(
-    "AZURE_STORAGE_CONNECTION_STRING"
-)
-
-RAW_CONTAINER = "digital-twin-raw"
-PROCESSED_CONTAINER = "digital-twin-processed"
-
-if not CHANNEL_ID or not READ_API_KEY:
-    raise ValueError("Missing ThingSpeak environment variables")
-
-if not AZURE_STORAGE_CONNECTION_STRING:
-    raise ValueError("Missing Azure Storage connection string")
-
-# =====================================================
-# AZURE BLOB SETUP
-# =====================================================
-blob_service_client = BlobServiceClient.from_connection_string(
-    AZURE_STORAGE_CONNECTION_STRING
-)
-
-raw_container_client = blob_service_client.get_container_client(
-    RAW_CONTAINER
-)
-
-processed_container_client = blob_service_client.get_container_client(
-    PROCESSED_CONTAINER
-)
-
-for container in [raw_container_client, processed_container_client]:
-    try:
-        container.create_container()
-    except:
-        pass
-
-# =====================================================
-# THINGSPEAK CONFIG
-# =====================================================
-THINGSPEAK_URL = (
-    f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json"
-    f"?api_key={READ_API_KEY}&results=1"
-)
-
-DEFAULT_PRESSURE = 45.0
-DEFAULT_FLOW = 100.0
-
-SENSOR_CONFIG = [
-    {"sensor_id": 1, "pressure_field": "field1", "flow_field": "field2"},
-    {"sensor_id": 2, "pressure_field": "field3", "flow_field": "field4"},
-    {"sensor_id": 3, "pressure_field": "field5", "flow_field": "field6"},
-]
-
-# =====================================================
-# SENSOR TO REVIT MAPPING
-# =====================================================
-
-SENSOR_METADATA = {
-    1: {
-        "pressure_sensor_id": "PP-001",
-        "flow_sensor_id": "F-001",
-        "pipe_id": "P-002"
-    },
-    2: {
-        "pressure_sensor_id": "PP-002",
-        "flow_sensor_id": "F-002",
-        "pipe_id": "P-006"
-    },
-    3: {
-        "pressure_sensor_id": "PP-003",
-        "flow_sensor_id": "F-003",
-        "pipe_id": "P-009"
-    }
-}
-# =====================================================
-# UTILITIES
-# =====================================================
-def safe_float(x, default):
-    try:
-        v = float(x)
-        if math.isnan(v) or math.isinf(v):
-            return default
-        return v
-    except:
-        return default
-
-
-def clean_dict(d):
-    out = {}
-    for k, v in d.items():
-        if isinstance(v, float):
-            if math.isnan(v) or math.isinf(v):
-                out[k] = 0.0
-            else:
-                out[k] = v
-        else:
-            out[k] = v
-    return out
-
-
-def save_to_blob(container_client, filename, data: dict):
-    blob_client = container_client.get_blob_client(filename)
-    blob_client.upload_blob(
-        json.dumps(data, indent=2),
-        overwrite=True
-    )
-
-# =====================================================
-# CORE DIGITAL TWIN FUNCTION
-# =====================================================
 def run_digital_twin():
     try:
         r = requests.get(THINGSPEAK_URL, timeout=10)
@@ -141,8 +14,6 @@ def run_digital_twin():
 
     timestamp = datetime.utcnow().isoformat()
     filename_time = f"{datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')}_{uuid.uuid4().hex}"
-
-
 
     raw_output = {
         "timestamp": timestamp,
@@ -193,8 +64,9 @@ def run_digital_twin():
                 mag_ratio = leak_lpm / 10800
                 pres = get_prescription(size_ratio, mag_ratio)
                 prescription = clean_dict(pres)
- 
+
             meta = SENSOR_METADATA.get(sensor_id, {})
+
             processed_output["sensors"].append(clean_dict({
                 "sensor_numeric_id": sensor_id,
                 "pressure_sensor_id": meta.get("pressure_sensor_id"),
@@ -212,47 +84,30 @@ def run_digital_twin():
     except Exception as e:
         return {"error": f"Prediction error: {str(e)}"}
 
-        try:
-        # 1️⃣ Save historical raw
-            save_to_blob(
-                raw_container_client,
-                f"{filename_time}_raw.json",
-                raw_output
-            )
+    # ✅ SAVE TO AZURE BLOB (OUTSIDE prediction try block)
+    try:
+        # 1️⃣ Historical raw
+        save_to_blob(
+            raw_container_client,
+            f"{filename_time}_raw.json",
+            raw_output
+        )
 
-        # 2️⃣ Save historical processed
-            save_to_blob(
-                processed_container_client,
-                f"{filename_time}_processed.json",
-                processed_output
-            )
+        # 2️⃣ Historical processed
+        save_to_blob(
+            processed_container_client,
+            f"{filename_time}_processed.json",
+            processed_output
+        )
 
-        # 3️⃣ Overwrite latest processed file
-            save_to_blob(
-                processed_container_client,
-                "latest.json",
-                processed_output
-            )
-
-    except Exception as e:
-        return {"error": f"Azure Blob error: {str(e)}"}
+        # 3️⃣ Overwrite latest.json (LIVE FILE)
+        save_to_blob(
+            processed_container_client,
+            "latest.json",
+            processed_output
+        )
 
     except Exception as e:
         return {"error": f"Azure Blob error: {str(e)}"}
 
-    return processed_output # 👈 IMPORTANT
-
-# =====================================================
-# API ROUTES
-# =====================================================
-@app.get("/")
-def home():
-    return {"status": "Digital Twin API Running"}
-
-@app.get("/live")
-def live_trigger():
-    result = run_digital_twin()
-    return result
-
-
-    
+    return processed_output
