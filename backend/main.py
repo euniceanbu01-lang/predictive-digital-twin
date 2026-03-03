@@ -73,20 +73,20 @@ SENSOR_CONFIG = [
 # =====================================================
 
 SENSOR_METADATA = {
-    3: {
-        "pressure_sensor_id": "PP-003",
-        "flow_sensor_id": "F-003",
-        "pipe_id": "P-009"
+    1: {
+        "pressure_sensor_id": "PP-001",
+        "flow_sensor_id": "F-001",
+        "pipe_id": "P-002"
     },
     2: {
         "pressure_sensor_id": "PP-002",
         "flow_sensor_id": "F-002",
         "pipe_id": "P-006"
     },
-    1: {
-        "pressure_sensor_id": "PP-001",
-        "flow_sensor_id": "F-001",
-        "pipe_id": "P-002"
+    3: {
+        "pressure_sensor_id": "PP-003",
+        "flow_sensor_id": "F-003",
+        "pipe_id": "P-009"
     }
 }
 # =====================================================
