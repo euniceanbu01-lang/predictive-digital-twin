@@ -212,18 +212,30 @@ def run_digital_twin():
     except Exception as e:
         return {"error": f"Prediction error: {str(e)}"}
 
-    try:
-        save_to_blob(
-            raw_container_client,
-            f"{filename_time}_raw.json",
-            raw_output
-        )
+        try:
+        # 1️⃣ Save historical raw
+            save_to_blob(
+                raw_container_client,
+                f"{filename_time}_raw.json",
+                raw_output
+            )
 
-        save_to_blob(
-            processed_container_client,
-            f"{filename_time}_processed.json",
-            processed_output
-        )
+        # 2️⃣ Save historical processed
+            save_to_blob(
+                processed_container_client,
+                f"{filename_time}_processed.json",
+                processed_output
+            )
+
+        # 3️⃣ Overwrite latest processed file
+            save_to_blob(
+                processed_container_client,
+                "latest.json",
+                processed_output
+            )
+
+    except Exception as e:
+        return {"error": f"Azure Blob error: {str(e)}"}
 
     except Exception as e:
         return {"error": f"Azure Blob error: {str(e)}"}
