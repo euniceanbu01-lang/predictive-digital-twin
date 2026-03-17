@@ -61,7 +61,7 @@ def predict_leak(pressure_bar, flow_lpm):
         "leak": 1,
         "prob": float(prob),
         "leak_lpm": round(leak_lpm, 3),
-        "leak_mm": round(leak_mm, 3)
+        "leak_mm": round(leak_mm, 3),
         "leak_Area": round(A,3)
     }
 
