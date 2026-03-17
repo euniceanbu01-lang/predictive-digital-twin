@@ -191,7 +191,7 @@ def run_digital_twin():
                 "probability": round(prob, 4),
                 "leak_lpm": leak_lpm,
                 "leak_mm": leak_mm,
-                "leak_Area": leak_Area
+                "leak_Area": leak_Area,
                 "prescription": prescription
             }))
 
