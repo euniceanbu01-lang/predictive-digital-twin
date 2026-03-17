@@ -163,6 +163,7 @@ def run_digital_twin():
 
             leak_lpm = safe_float(result.get("leak_lpm"), 0)
             leak_mm = safe_float(result.get("leak_mm"), 0)
+            leak_Area = safe_float(result.get("leak_Area"),0)
             prob = safe_float(result.get("prob"), 0)
 
             prescription = {
@@ -190,6 +191,7 @@ def run_digital_twin():
                 "probability": round(prob, 4),
                 "leak_lpm": leak_lpm,
                 "leak_mm": leak_mm,
+                "leak_Area": leak_Area
                 "prescription": prescription
             }))
 
