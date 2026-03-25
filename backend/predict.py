@@ -29,18 +29,13 @@ def predict_leak(pressure_bar, flow_lpm):
     prob = model.predict_proba(X)[0][1]
     leak = int(prob >= threshold)
 
-    # If NO leak → return early
     if leak == 0:
         return {
             "leak": 0,
             "prob": float(prob),
             "leak_lpm": 0,
-            "leak_mm": 0
+            "leak_area": 0
         }
-
-    # -------------------------
-    # Leak calculations
-    # -------------------------
 
     expected = 0.70 * flow_gpm
     leak_gpm = max(0, flow_gpm - expected)
@@ -50,18 +45,15 @@ def predict_leak(pressure_bar, flow_lpm):
 
     head_m = pressure_bar * 10.2
 
-    if leak_m3s <= 0 or head_m <= 0:
-        leak_mm = 0
-    else:
+    A = 0
+
+    if leak_m3s > 0 and head_m > 0:
         A = leak_m3s / (Cd * math.sqrt(2 * g * head_m))
-        d = math.sqrt((4 * A) / math.pi)
-        leak_mm = d * 1000
 
     return {
         "leak": 1,
         "prob": float(prob),
         "leak_lpm": round(leak_lpm, 3),
-        "leak_mm": round(leak_mm, 3),
-        "leak_Area": round(A,3)
+        "leak_area": round(A, 6)
     }
 
