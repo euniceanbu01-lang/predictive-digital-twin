@@ -138,6 +138,7 @@ def run_digital_twin():
         "sensors": []
     }
 
+    PIPE_AREA = 490.87
     # 2️⃣ Process predictions
     try:
         for sensor in SENSOR_CONFIG:
@@ -167,13 +168,13 @@ def run_digital_twin():
 
             prescription = {
                 "severity": "Normal",
-                "action_type": "No action required"
+                "action_type": "No action required",
+                "priority": 0
             }
 
-            PIPE_AREA = 490.87
             if result.get("leak") == 1:
 
-                 size_value = leak_area/PIPE_AREA
+                 size_value = leak_area / PIPE_AREA
                  mag_value = leak_lpm
 
                  pres = get_prescription(size_value, mag_value)
