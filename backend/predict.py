@@ -10,7 +10,6 @@ MODEL_PATH = os.path.join(BASE_DIR, "model.joblib")
 
 bundle = joblib.load(MODEL_PATH)
 
-
 model = bundle["model"]
 threshold = bundle["threshold"]
 
@@ -50,10 +49,12 @@ def predict_leak(pressure_bar, flow_lpm):
     if leak_m3s > 0 and head_m > 0:
         A = leak_m3s / (Cd * math.sqrt(2 * g * head_m))
 
+    # ✅ convert m² → mm²
+    A_mm2 = A * 1_000_000
+
     return {
         "leak": 1,
         "prob": float(prob),
         "leak_lpm": round(leak_lpm, 3),
-        "leak_area": round(A, 6)
+        "leak_area": round(A_mm2, 3)
     }
-
