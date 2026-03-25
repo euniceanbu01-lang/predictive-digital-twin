@@ -162,21 +162,20 @@ def run_digital_twin():
             result = predict_leak(pressure, flow)
 
             leak_lpm = safe_float(result.get("leak_lpm"), 0)
-            leak_mm = safe_float(result.get("leak_mm"), 0)
-            leak_Area = safe_float(result.get("leak_Area"),0)
+            leak_area = safe_float(result.get("leak_area",0), 0)
             prob = safe_float(result.get("prob"), 0)
 
             prescription = {
                 "severity": "Normal",
-                "action_type": "No action required",
-                "priority": 0
+                "action_type": "No action required"
             }
-
             if result.get("leak") == 1:
-                size_ratio = leak_mm / 1000
-                mag_ratio = leak_lpm / 10800
-                pres = get_prescription(size_ratio, mag_ratio)
-                prescription = clean_dict(pres)
+
+                 size_value = leak_area
+                 mag_value = leak_lpm
+
+                 pres = get_prescription(size_value, mag_value)
+                 prescription = clean_dict(pres)
 
             meta = SENSOR_METADATA.get(sensor_id, {})
 
@@ -190,8 +189,7 @@ def run_digital_twin():
                 "leak": int(result.get("leak", 0)),
                 "probability": round(prob, 4),
                 "leak_lpm": leak_lpm,
-                "leak_mm": leak_mm,
-                "leak_Area": leak_Area,
+                "leak_area": leak_area,
                 "prescription": prescription
             }))
 
