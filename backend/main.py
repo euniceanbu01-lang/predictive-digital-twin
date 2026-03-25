@@ -169,9 +169,11 @@ def run_digital_twin():
                 "severity": "Normal",
                 "action_type": "No action required"
             }
+
+            PIPE_AREA = 490.87
             if result.get("leak") == 1:
 
-                 size_value = leak_area
+                 size_value = leak_area/PIPE_AREA
                  mag_value = leak_lpm
 
                  pres = get_prescription(size_value, mag_value)
