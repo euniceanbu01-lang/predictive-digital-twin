@@ -171,14 +171,21 @@ def run_digital_twin():
                 "action_type": "No action required",
                 "priority": 0
             }
-
+            
             if result.get("leak") == 1:
-
-                 size_value = leak_area / PIPE_AREA
-                 mag_value = leak_lpm
-
-                 pres = get_prescription(size_value, mag_value)
-                 prescription = clean_dict(pres)
+            
+                size_value = leak_area / PIPE_AREA
+                mag_value = leak_lpm
+            
+                pres = get_prescription(size_value, mag_value)
+                pres = clean_dict(pres)
+            
+                prescription = {
+                    "severity": pres.get("severity"),
+                    "action_type": pres.get("action_type"),
+                    "Failure_type": pres.get("Failure_type"),
+                    "repair_strategy": pres.get("repair_strategy")
+                }
 
             meta = SENSOR_METADATA.get(sensor_id, {})
 
