@@ -12,9 +12,8 @@ from .prescribe import get_prescription
 
 app = FastAPI()
 
-# =====================================================
 # ENVIRONMENT VARIABLES
-# =====================================================
+
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 READ_API_KEY = os.getenv("READ_API_KEY")
 AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
@@ -27,9 +26,9 @@ if not CHANNEL_ID or not READ_API_KEY:
 if not AZURE_STORAGE_CONNECTION_STRING:
     raise ValueError("Missing Azure Storage connection string")
 
-# =====================================================
+
 # AZURE BLOB SETUP
-# =====================================================
+
 blob_service_client = BlobServiceClient.from_connection_string(
     AZURE_STORAGE_CONNECTION_STRING
 )
@@ -48,9 +47,8 @@ for container in [raw_container_client, processed_container_client]:
     except:
         pass
 
-# =====================================================
 # THINGSPEAK CONFIG
-# =====================================================
+
 THINGSPEAK_URL = (
     f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json"
     f"?api_key={READ_API_KEY}&results=1"
@@ -71,9 +69,7 @@ SENSOR_METADATA = {
     3: {"pressure_sensor_id": "PP-003", "flow_sensor_id": "F-003", "pipe_id": "P-009"},
 }
 
-# =====================================================
 # UTILITIES
-# =====================================================
 def safe_float(x, default):
     try:
         v = float(x)
@@ -104,12 +100,11 @@ def save_to_blob(container_client, filename, data: dict):
         overwrite=True
     )
 
-# =====================================================
 # CORE DIGITAL TWIN FUNCTION
-# =====================================================
+
 def run_digital_twin():
 
-    # 1️⃣ Fetch ThingSpeak data
+    # Fetch ThingSpeak data
     try:
         r = requests.get(THINGSPEAK_URL, timeout=10)
         r.raise_for_status()
@@ -139,7 +134,7 @@ def run_digital_twin():
     }
 
     PIPE_AREA = 490.87
-    # 2️⃣ Process predictions
+    # Process predictions
     try:
         for sensor in SENSOR_CONFIG:
 
@@ -210,7 +205,7 @@ def run_digital_twin():
     except Exception as e:
         return {"error": f"Prediction error: {str(e)}"}
 
-    # 3️⃣ Save to Azure Blob
+    # Save to Azure Blob
     try:
         # Historical raw
         save_to_blob(
@@ -238,9 +233,7 @@ def run_digital_twin():
 
     return processed_output
 
-# =====================================================
 # API ROUTES
-# =====================================================
 @app.get("/")
 def home():
     return {"status": "Digital Twin API Running"}
