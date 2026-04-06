@@ -56,13 +56,14 @@ THINGSPEAK_URL = (
     f"?api_key={READ_API_KEY}&results=1"
 )
 
-DEFAULT_PRESSURE = 45.0
-DEFAULT_FLOW = 100.0
+DEFAULT_PRESSURE = 1.8   # bar
+DEFAULT_FLOW = 5.0       # LPS
 
 SENSOR_CONFIG = [
-    {"sensor_id": 1, "pressure_field": "field1", "flow_field": "field2"},
-    {"sensor_id": 2, "pressure_field": "field3", "flow_field": "field4"},
-    {"sensor_id": 3, "pressure_field": "field5", "flow_field": "field6"},
+    {"sensor_id": 1, "flow_field": "field1", "pressure_field": "field2"},
+    {"sensor_id": 2, "flow_field": "field3", "pressure_field": "field4"},
+    {"sensor_id": 3, "flow_field": "field5", "pressure_field": "field6"},
+]
 ]
 
 SENSOR_METADATA = {
@@ -162,8 +163,9 @@ def run_digital_twin():
 
             result = predict_leak(pressure, flow)
 
-            leak_lpm = safe_float(result.get("leak_lpm"), 0)
-            leak_area = safe_float(result.get("leak_area",0), 0)
+            leak_lps = safe_float(result.get("Leak_Magnitude_LPS"), 0)
+            leak_area = safe_float(result.get("Leak_Area_mm2"), 0)
+            leak_diameter = safe_float(result.get("Leak_Diameter_mm"), 0)
             prob = safe_float(result.get("prob"), 0)
 
             prescription = {
@@ -174,8 +176,8 @@ def run_digital_twin():
             
             if result.get("leak") == 1:
             
-                size_value = leak_area / PIPE_AREA
-                mag_value = leak_lpm
+                size_value = leak_area / PIPE_AREA if PIPE_AREA > 0 else 0
+                mag_value = leak_lps
             
                 pres = get_prescription(size_value, mag_value)
                 pres = clean_dict(pres)
@@ -198,8 +200,10 @@ def run_digital_twin():
                 "flow": round(flow, 2),
                 "leak": int(result.get("leak", 0)),
                 "probability": round(prob, 4),
-                "leak_lpm": leak_lpm,
-                "leak_area": leak_area,
+                "leak_lps": leak_lps,
+                "leak_area_mm2": leak_area,
+                "leak_diameter_mm": leak_diameter,
+                "leak_size_ratio": round(size_value, 5),
                 "prescription": prescription
             }))
 
