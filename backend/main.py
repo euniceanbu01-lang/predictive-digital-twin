@@ -64,7 +64,6 @@ SENSOR_CONFIG = [
     {"sensor_id": 2, "flow_field": "field3", "pressure_field": "field4"},
     {"sensor_id": 3, "flow_field": "field5", "pressure_field": "field6"},
 ]
-]
 
 SENSOR_METADATA = {
     1: {"pressure_sensor_id": "PP-001", "flow_sensor_id": "F-001", "pipe_id": "P-002"},
