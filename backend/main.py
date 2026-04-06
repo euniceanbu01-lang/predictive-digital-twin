@@ -174,6 +174,7 @@ def run_digital_twin():
                 "priority": 0
             }
             
+            size_value = 0
             if result.get("leak") == 1:
             
                 size_value = leak_area / PIPE_AREA if PIPE_AREA > 0 else 0
