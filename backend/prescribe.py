@@ -13,7 +13,6 @@ def clean_value(x):
         return ""
     return x
 
-
 def to_float(x):
     try:
         return float(x)
