@@ -6,7 +6,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH = os.path.join(BASE_DIR, "prescription.csv")
 
 df = pd.read_csv(CSV_PATH).fillna("")
-
+df.columns = df.columns.str.strip().str.lower()
 
 def clean_value(x):
     if isinstance(x, float) and math.isnan(x):
@@ -32,7 +32,6 @@ def get_prescription(leak_size, magnitude):
         size_ok = True
         mag_ok = True
 
-        # ✅ SAME LOGIC STYLE (no breaking change)
         if smin is not None and leak_size < smin:
             size_ok = False
         if smax is not None and leak_size > smax:
@@ -46,11 +45,16 @@ def get_prescription(leak_size, magnitude):
         if size_ok and mag_ok:
             return {k: clean_value(v) for k, v in row.to_dict().items()}
 
-    # ✅ IMPORTANT: keep your old fallback behavior (Azure safe)
-    moderate = df[df["severity"] == "Moderate"]
+   
+    moderate = df[df["severity"].str.lower() == "moderate"]
 
     if len(moderate) > 0:
         row = moderate.iloc[0]
         return {k: clean_value(v) for k, v in row.to_dict().items()}
 
-    return {"message": "No prescription found"}
+    return {
+        "severity": "unknown",
+        "action_type": "no action",
+        "failure_type": "unknown",
+        "repair_strategy": "inspection required"
+    }
