@@ -178,12 +178,11 @@ def run_digital_twin():
                 pres = clean_dict(pres)
             
                 prescription = {
-                    "severity": pres.get("severity"),
-                    "action_type": pres.get("action_type"),
-                    "Failure_type": pres.get("Failure_type"),
-                    "repair_strategy": pres.get("repair_strategy")
+                    "severity": pres.get("severity", "N/A"),
+                    "action_type": pres.get("action_type", "N/A"),
+                    "failure_type": pres.get("failure_type", "N/A"),
+                    "repair_strategy": pres.get("repair_strategy", "N/A")
                 }
-
             meta = SENSOR_METADATA.get(sensor_id, {})
 
             processed_output["sensors"].append(clean_dict({
