@@ -134,72 +134,125 @@ def run_digital_twin():
     }
 
     PIPE_AREA = 490.87
-    # Process predictions
+
+    # ===== Process predictions =====
     try:
         for sensor in SENSOR_CONFIG:
 
             sensor_id = sensor["sensor_id"]
 
-            pressure = safe_float(
+            # =========================
+            # READ RAW VALUES
+            # =========================
+            pressure_raw = max(safe_float(
                 feed.get(sensor["pressure_field"]),
                 DEFAULT_PRESSURE
-            )
-
-            flow = safe_float(
+            ), 0)
+            
+            flow_raw = max(safe_float(
                 feed.get(sensor["flow_field"]),
                 DEFAULT_FLOW
-            )
+            ), 0)
+            # =========================
+            # APPLY CORRECTION FACTORS
+            # =========================
+            FLOW_FACTOR = 7.177033493
+            PRESSURE_FACTOR = 0.390450136
 
+            flow_lpm = flow_raw * FLOW_FACTOR
+            pressure = pressure_raw * PRESSURE_FACTOR
+
+            # Clamp unrealistic spikes
+            flow_lpm = min(flow_lpm, 200)       # adjust if needed
+            pressure = min(pressure, 10)        # bar limit safety
+
+            # =========================
+            # CONVERT LPM → LPS (FOR MODEL)
+            # =========================
+            flow_lps = flow_lpm / 60.0
+
+            # =========================
+            # STORE RAW (HUMAN READABLE)
+            # =========================
             raw_output["sensors"][f"sensor_{sensor_id}"] = {
-                "pressure": pressure,
-                "flow": flow
+                "pressure_bar": round(pressure, 3),
+                "flow_lpm": round(flow_lpm, 2)
             }
 
-            result = predict_leak(pressure, flow)
+            # =========================
+            # PREDICTION
+            # =========================
+            result = predict_leak(pressure, flow_lps)
 
+            # =========================
+            # EXTRACT RESULTS
+            # =========================
             leak_lps = safe_float(result.get("Leak_Magnitude_LPS"), 0)
+            leak_lpm = safe_float(result.get("Leak_Magnitude_LPM"), leak_lps * 60)
+
             leak_area = safe_float(result.get("Leak_Area_mm2"), 0)
             leak_diameter = safe_float(result.get("Leak_Diameter_mm"), 0)
             prob = safe_float(result.get("prob"), 0)
 
+            # =========================
+            # PRESCRIPTION
+            # =========================
             prescription = {
                 "severity": "Normal",
                 "action_type": "No action required",
                 "priority": 0
             }
-            
+
             size_value = 0
+
             if result.get("leak") == 1:
-            
+
                 size_value = leak_area / PIPE_AREA if PIPE_AREA > 0 else 0
                 mag_value = leak_lps
-            
+
                 pres = get_prescription(size_value, mag_value)
                 pres = clean_dict(pres)
-            
+
                 prescription = {
                     "severity": pres.get("severity", "N/A"),
                     "action_type": pres.get("action_type", "N/A"),
                     "failure_type": pres.get("failure_type", "N/A"),
                     "repair_strategy": pres.get("repair_strategy", "N/A")
                 }
+
+            # =========================
+            # METADATA
+            # =========================
             meta = SENSOR_METADATA.get(sensor_id, {})
 
+            # =========================
+            # FINAL OUTPUT (FOR VISUALIZATION)
+            # =========================
             processed_output["sensors"].append(clean_dict({
                 "sensor_numeric_id": sensor_id,
                 "pressure_sensor_id": meta.get("pressure_sensor_id"),
                 "flow_sensor_id": meta.get("flow_sensor_id"),
                 "pipe_id": meta.get("pipe_id"),
-                "pressure": round(pressure, 2),
-                "flow": round(flow, 2),
+
+                "pressure": round(pressure, 2),     # bar
+                "flow_lpm": round(flow_lpm, 2),     # 🔥 LPM
+
                 "leak": int(result.get("leak", 0)),
                 "probability": round(prob, 4),
-                "leak_lps": leak_lps,
+
+                "leak_lpm": round(leak_lpm, 2),     # 🔥 REQUIRED
                 "leak_area_mm2": leak_area,
                 "leak_diameter_mm": leak_diameter,
+
                 "leak_size_ratio": round(size_value, 5),
+
                 "prescription": prescription
             }))
+
+        return {
+            "raw": raw_output,
+            "processed": processed_output
+        }
 
     except Exception as e:
         return {"error": f"Prediction error: {str(e)}"}
