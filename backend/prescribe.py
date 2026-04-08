@@ -24,7 +24,7 @@ def get_prescription(leak_size, magnitude):
 
     selected_row = None
 
-    # =========================
+
     # STEP 1: SIZE-BASED SEVERITY
     # =========================
     for _, row in df.iterrows():
