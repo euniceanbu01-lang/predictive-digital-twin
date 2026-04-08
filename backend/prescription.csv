@@ -1,5 +1,5 @@
 severity,leak_size_min,leak_size_max,magnitude_min,magnitude_max,action_type,Failure_type,repair_strategy
-Minor,0,0.0001,0,0.001,Wet repair,Pinhole or leaking joint,Apply split repair clamp or wrap around collar Tighten or replace rubber ring joint
-Moderate,0.0001,0.0025,0.001,0.01,Dry repair,Circular hole or joint failure  ,Isolate pipe cut out damaged section 300 mm beyond defect install new PVC section with repair couplings Ensure joints refitted
-Major,0.0025,0.01,0.01,1,Dry repair emergency shutdown,Longitudinal crack or shattered section ,Isolate and replace full pipe section Use spigot socket couplers Disinfect and flush after repair
-Catastrophic,0.01,1,1,1,Dry repair Emergency shutdwon,Blow out or multiple cracks, emergency isolation Install bypass line Replace full pipe length Inspect bedding support
+Minor,0,0.0015,0,0.5,Wet repair,Pinhole or leaking joint,Apply split repair clamp or wrap around collar Tighten or replace rubber ring joint
+Moderate,0.0015,0.01,0.5,2,Dry repair,Circular hole or joint failure  ,Isolate pipe cut out damaged section 300 mm beyond defect install new PVC section with repair couplings Ensure joints refitted
+Major,0.01,0.05,2,5,Dry repair emergency shutdown,Longitudinal crack or shattered section ,Isolate and replace full pipe section Use spigot socket couplers Disinfect and flush after repair
+Catastrophic,0.05,1,5,999,Dry repair Emergency shutdwon,Blow out or multiple cracks, emergency isolation Install bypass line Replace full pipe length Inspect bedding support
