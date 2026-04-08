@@ -249,41 +249,42 @@ def run_digital_twin():
                 "prescription": prescription
             }))
 
-        return {
-            "raw": raw_output,
-            "processed": processed_output
-        }
 
     except Exception as e:
         return {"error": f"Prediction error: {str(e)}"}
 
-    # Save to Azure Blob
-    try:
-        # Historical raw
-        save_to_blob(
-            raw_container_client,
-            f"{filename_time}_raw.json",
-            raw_output
-        )
+# =========================
+# SAVE TO BLOB (MUST RUN BEFORE RETURN)
+# =========================
+try:
+    # Historical raw
+    save_to_blob(
+        raw_container_client,
+        f"{filename_time}_raw.json",
+        raw_output
+    )
 
-        # Historical processed
-        save_to_blob(
-            processed_container_client,
-            f"{filename_time}_processed.json",
-            processed_output
-        )
+    # Historical processed
+    save_to_blob(
+        processed_container_client,
+        f"{filename_time}_processed.json",
+        processed_output
+    )
 
-        # Overwrite live file
-        save_to_blob(
-            processed_container_client,
-            "latest.json",
-            processed_output
-        )
+    # Live overwrite
+    save_to_blob(
+        processed_container_client,
+        "latest.json",
+        processed_output
+    )
 
-    except Exception as e:
-        return {"error": f"Azure Blob error: {str(e)}"}
+except Exception as e:
+    return {"error": f"Azure Blob error: {str(e)}"}
 
-    return processed_output
+# =========================
+# FINAL RESPONSE (ONLY PROCESSED)
+# =========================
+return processed_output
 
 # API ROUTES
 @app.get("/")
