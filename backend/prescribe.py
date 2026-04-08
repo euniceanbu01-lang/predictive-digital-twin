@@ -29,32 +29,29 @@ def get_prescription(leak_size, magnitude):
         mmin = to_float(row.get("magnitude_min"))
         mmax = to_float(row.get("magnitude_max"))
 
-        size_ok = True
-        mag_ok = True
+        size_ok = (
+            (smin is None or leak_size >= smin) and
+            (smax is None or leak_size < smax)
+        )
 
-        if smin is not None and leak_size < smin:
-            size_ok = False
-        if smax is not None and leak_size > smax:
-            size_ok = False
-
-        if mmin is not None and magnitude < mmin:
-            mag_ok = False
-        if mmax is not None and magnitude > mmax:
-            mag_ok = False
+        mag_ok = (
+            (mmin is None or magnitude >= mmin) and
+            (mmax is None or magnitude < mmax)
+        )
 
         if size_ok and mag_ok:
             return {k: clean_value(v) for k, v in row.to_dict().items()}
 
-   
-    moderate = df[df["severity"].str.lower() == "moderate"]
+    # ===== SAFE FALLBACK (NO UNKNOWN) =====
+    if leak_size < 0.0001:
+        fallback = "Minor"
+    elif leak_size < 0.0025:
+        fallback = "Moderate"
+    elif leak_size < 0.01:
+        fallback = "Major"
+    else:
+        fallback = "Catastrophic"
 
-    if len(moderate) > 0:
-        row = moderate.iloc[0]
-        return {k: clean_value(v) for k, v in row.to_dict().items()}
+    row = df[df["severity"].str.lower() == fallback.lower()].iloc[0]
 
-    return {
-        "severity": "unknown",
-        "action_type": "no action",
-        "failure_type": "unknown",
-        "repair_strategy": "inspection required"
-    }
+    return {k: clean_value(v) for k, v in row.to_dict().items()}
