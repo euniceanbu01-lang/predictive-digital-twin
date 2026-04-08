@@ -104,10 +104,10 @@ def predict_leak(pressure_bar, flow_lps):
     # =========================
     # HYBRID DECISION
     # =========================
-    if pressure_ratio < 0.75:
-        leak_flag = 1
-    else:
-        leak_flag = int(prob > threshold)
+    #if pressure_ratio < 0.75:
+    #    leak_flag = 1
+    #else:
+    #    leak_flag = int(prob > threshold)
 
     # =========================
     # NO LEAK
