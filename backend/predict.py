@@ -100,6 +100,7 @@ def predict_leak(pressure_bar, flow_lps):
     # MODEL PREDICTION
     # =========================
     prob = float(model.predict_proba(X)[0][1])
+    leak_flag = int(prob > threshold)
 
     # =========================
     # HYBRID DECISION
