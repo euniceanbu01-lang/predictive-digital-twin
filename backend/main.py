@@ -253,44 +253,44 @@ def run_digital_twin():
     except Exception as e:
         return {"error": f"Prediction error: {str(e)}"}
 
-# =========================
-# SAVE TO BLOB (MUST RUN BEFORE RETURN)
-# =========================
-try:
-    # Historical raw
-    save_to_blob(
-        raw_container_client,
-        f"{filename_time}_raw.json",
-        raw_output
-    )
-
-    # Historical processed
-    save_to_blob(
-        processed_container_client,
-        f"{filename_time}_processed.json",
-        processed_output
-    )
-
-    # Live overwrite
-    save_to_blob(
-        processed_container_client,
-        "latest.json",
-        processed_output
-    )
-
-except Exception as e:
-    return {"error": f"Azure Blob error: {str(e)}"}
-
-# =========================
-# FINAL RESPONSE (ONLY PROCESSED)
-# =========================
-return processed_output
-
+    # =========================
+    # SAVE TO BLOB (MUST RUN BEFORE RETURN)
+    # =========================
+    try:
+        # Historical raw
+        save_to_blob(
+            raw_container_client,
+            f"{filename_time}_raw.json",
+            raw_output
+        )
+    
+        # Historical processed
+        save_to_blob(
+            processed_container_client,
+            f"{filename_time}_processed.json",
+            processed_output
+        )
+    
+        # Live overwrite
+        save_to_blob(
+            processed_container_client,
+            "latest.json",
+            processed_output
+        )
+    
+    except Exception as e:
+        return {"error": f"Azure Blob error: {str(e)}"}
+    
+    # =========================
+    # FINAL RESPONSE (ONLY PROCESSED)
+    # =========================
+    return processed_output
+    
 # API ROUTES
 @app.get("/")
 def home():
     return {"status": "Digital Twin API Running"}
-
+    
 @app.get("/live")
 def live_trigger():
     return run_digital_twin()
