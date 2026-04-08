@@ -24,7 +24,7 @@ pressure_median = bundle["pressure_median"]
 EXPECTED_FLOW = 25.0 / 60.0   # LPS
 EXPECTED_PRESSURE = 0.48      # bar
 
-Cd = 0.90
+Cd = 0.80
 g = 9.81
 
 
