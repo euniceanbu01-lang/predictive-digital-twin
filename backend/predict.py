@@ -1,8 +1,10 @@
+from .scalers import NamedRobustScaler  # noqa: F401 — needed for pickle deserialization
+import joblib
 import joblib
 import pandas as pd
 import math
 import os
-from backend.custom_scalers import NamedRobustScaler
+
 
 # =========================
 # LOAD MODEL
