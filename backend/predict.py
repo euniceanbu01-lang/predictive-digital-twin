@@ -2,6 +2,7 @@ import joblib
 import pandas as pd
 import math
 import os
+from backend.custom_scalers import NamedRobustScaler
 
 # =========================
 # LOAD MODEL
