@@ -7,7 +7,6 @@ import uuid
 from datetime import datetime
 from azure.storage.blob import BlobServiceClient
 
-from .scalers import NamedRobustScaler  # noqa: F401
 from .predict import predict_leak
 from .prescribe import get_prescription
 
