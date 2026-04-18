@@ -7,7 +7,7 @@ import os
 # LOAD MODEL
 # =========================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "final_leak_model_rf.pkl")
+MODEL_PATH = os.path.join(BASE_DIR, "leak_model_systemA.pkl")
 
 bundle = joblib.load(MODEL_PATH)
 
