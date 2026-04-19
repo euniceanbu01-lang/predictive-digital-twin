@@ -189,6 +189,7 @@ def run_digital_twin() -> dict:
                 "leak_area_mm2":      leak_area,
                 "leak_diameter_mm":   leak_dia,
                 "leak_size_ratio":    round(size_ratio, 5),
+                "alert_state": result.get("alert_state", "normal"),
 
                 "prescription":       prescription,
             }))
